@@ -4,6 +4,7 @@
 .wpilib
 
 build
+bin
 
 gradle
 *.gradle

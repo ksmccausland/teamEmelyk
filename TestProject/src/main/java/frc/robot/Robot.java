@@ -1,21 +1,12 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.robot;
 
-import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.Spark;
-import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
-/**
- * This is a demo program showing how to use Mecanum control with the RobotDrive
- * class.
- */
+import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
+
 public class Robot extends IterativeRobot {
   private static final int kFrontLeftChannel = 5;
   private static final int kRearLeftChannel = 2;
@@ -24,31 +15,60 @@ public class Robot extends IterativeRobot {
 
   private static final int kJoystickChannel = 0;
 
-  private MecanumDrive m_robotDrive;
-  private Joystick m_stick;
+  private XboxController joystick;
+
+  TalonSRX frontLeft;
+  TalonSRX rearLeft;
+  TalonSRX frontRight;
+  TalonSRX rearRight;
+
+  /*
+   * LogiTech Controller Layout:
+   *         
+   *       -y             
+   *  +x __| 
+   *        \
+   *         -z
+   */
+  public void mecanumDrive(double driveX, double driveY, double look) {
+    // for some reason... forward is negative. Because that makes sense...
+    // So lets invert it.
+    driveY *= -1; 
+
+    // driveY > 0.0 = move forward
+    // driveY < 0.0 = move backward
+    // driveX > 0.0 = move right
+    // driveX < 0.0 = move left
+    // look > 0.0 = clockwise
+    // look < 0.0 = counter-clockwise
+    
+    double leftFrontVel = driveY + driveX + look;
+    double leftRearVel = -driveY + driveX - look;
+    double rightFrontVel = driveY - driveX - look;
+    double rightRearVel = -driveY - driveX + look;
+
+    frontLeft.set(ControlMode.PercentOutput, leftFrontVel);
+    rearLeft.set(ControlMode.PercentOutput, leftRearVel);
+    frontRight.set(ControlMode.PercentOutput, rightFrontVel);
+    rearRight.set(ControlMode.PercentOutput, rightRearVel);
+  }
 
   @Override
   public void robotInit() {
-    Spark frontLeft = new Spark(kFrontLeftChannel);
-    Spark rearLeft = new Spark(kRearLeftChannel);
-    Spark frontRight = new Spark(kFrontRightChannel);
-    Spark rearRight = new Spark(kRearRightChannel);
+    frontLeft = new TalonSRX(kFrontLeftChannel);
+    rearLeft = new TalonSRX(kRearLeftChannel);
+    frontRight = new TalonSRX(kFrontRightChannel);
+    rearRight = new TalonSRX(kRearRightChannel);
 
-    // Invert the left side motors.
-    // You may need to change or remove this to match your robot.
+    // invert drive train from tank drive
     frontLeft.setInverted(true);
-    rearLeft.setInverted(true);
+    rearRight.setInverted(true);
 
-    m_robotDrive = new MecanumDrive(frontLeft, rearLeft, frontRight, rearRight);
-
-    m_stick = new Joystick(kJoystickChannel);
+    joystick = new XboxController(kJoystickChannel);
   }
 
   @Override
   public void teleopPeriodic() {
-    // Use the joystick X axis for lateral movement, Y axis for forward
-    // movement, and Z axis for rotation.
-    m_robotDrive.driveCartesian(m_stick.getX(), m_stick.getY(),
-        m_stick.getZ(), 0.0);
+    mecanumDrive(joystick.getX(Hand.kRight), joystick.getY(Hand.kRight), joystick.getX(Hand.kLeft));
   }
 }
