@@ -1,0 +1,10 @@
+.gradle
+.settings
+.vscode
+.wpilib
+
+build
+
+gradle
+*.gradle
+gradlew*
